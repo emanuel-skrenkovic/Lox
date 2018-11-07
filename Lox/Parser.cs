@@ -102,7 +102,7 @@ namespace Lox
 
         private Expr Assignment()
         {
-            var expr = Equality();
+            var expr = Conditional();
 
             if (Match(TokenType.EQUAL))
             {
@@ -143,7 +143,7 @@ namespace Lox
 
             while (Match(TokenType.TERN_THEN))
             {
-                var left = Equality();
+                var left = Expression();
 
                 if (!Match(TokenType.TERN_ELSE))
                     throw Error(Peek(), "Expect tern else");
