@@ -314,15 +314,7 @@ namespace Lox
             return Previous();
         }
 
-        private bool Check(TokenType type)
-        {
-            // if (IsAtEnd()) 
-            //     return false;
-
-            // return Peek().Type == type;
-
-            return Check(Peek(), type);
-        }
+        private bool Check(TokenType type) => Check(Peek(), type);
 
         private bool Check(Token token, TokenType type)
         {

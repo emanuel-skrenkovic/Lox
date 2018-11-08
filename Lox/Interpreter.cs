@@ -91,26 +91,11 @@ namespace Lox
             env.Define(stmt.Name.Lexeme, value);
         }
 
-        private void DeclarationStmt(DeclarationStmt stmt)
-        {
-            Declaration(stmt);
-        }
+        private void DeclarationStmt(DeclarationStmt stmt) => Declaration(stmt);
 
-        private void VariableStmt(VariableStmt stmt)
-        {
-            // var value = stmt?.Initializer != null 
-            //     ? EvaluateExpr(stmt.Initializer) 
-            //     : null;
+        private void VariableStmt(VariableStmt stmt) => Declaration(stmt.Declaration);
 
-            // env.Define(stmt.Name.Lexeme, value);
-
-            Declaration(stmt.Declaration);
-        }
-
-        private void ExpressionStmt(ExpressionStmt stmt)
-        {
-            EvaluateExpr(stmt.Expression);
-        }
+        private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
         private void PrintStmt(PrintStmt stmt)
         {
