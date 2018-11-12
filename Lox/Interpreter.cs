@@ -5,7 +5,7 @@ namespace Lox
 {
     public class Interpreter
     {
-        private readonly Environment env = new Environment();
+        private Environment _env = new Environment();
 
         public Interpreter() { }
 
@@ -26,6 +26,10 @@ namespace Lox
         {
             switch (stmt)
             {
+                case IfStmt ifStmt:
+                    IfStmt(ifStmt);
+                    break;
+
                 case DeclarationStmt declarationStmt:
                     DeclarationStmt(declarationStmt);
                     break;
@@ -38,9 +42,17 @@ namespace Lox
                     ExpressionStmt(exprStmt);
                     break;
 
+                case BlockStmt blockStmt:
+                    BlockStmt(blockStmt, new Environment(_env));
+                    break;
+
                 case PrintStmt printStmt:
                     PrintStmt(printStmt);
                     break; 
+                
+                case WhileStmt whileStmt:
+                    WhileStmt(whileStmt);
+                    break;
             }
         }
 
@@ -50,6 +62,9 @@ namespace Lox
             {
                 switch (expr)
                 {
+                    case Logical logical:
+                        return Logical(logical);
+
                     case Assignment assignment:
                         return Assignment(assignment);
 
@@ -82,13 +97,21 @@ namespace Lox
             }
         }
 
+        private void IfStmt(IfStmt stmt)
+        {
+            if (IsTruthy(EvaluateExpr(stmt.Condition)))
+                Execute(stmt.Then);
+            else if (stmt.Else != null)
+                Execute(stmt.Else);
+        }
+
         private void Declaration(DeclarationStmt stmt)
         {
            var value = stmt?.Initializer != null 
                 ? EvaluateExpr(stmt.Initializer) 
                 : null;
 
-            env.Define(stmt.Name.Lexeme, value);
+            _env.Define(stmt.Name.Lexeme, value);
         }
 
         private void DeclarationStmt(DeclarationStmt stmt) => Declaration(stmt);
@@ -97,6 +120,22 @@ namespace Lox
 
         private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
+        private void BlockStmt(BlockStmt stmt, Environment environment) 
+        {
+            var prevEnv = _env;
+            try
+            {
+                _env = environment;
+
+                foreach (var s in stmt.Statements)
+                    Execute(s);
+            }
+            finally
+            {
+                _env = prevEnv;
+            }
+        }
+
         private void PrintStmt(PrintStmt stmt)
         {
             var value = EvaluateExpr(stmt.Expression);
@@ -104,11 +143,35 @@ namespace Lox
             Console.WriteLine(Stringify(value));
         }
 
+        private void WhileStmt(WhileStmt stmt)
+        {
+            while (IsTruthy(EvaluateExpr(stmt.Condition)))
+                Execute(stmt.Body);
+        }
+
+        private object Logical(Logical expr)
+        {
+            var left = EvaluateExpr(expr.Left);
+
+            if (expr.Operator.Type == TokenType.OR)
+            {
+                if (IsTruthy(left))
+                    return left;
+            }
+            else
+            {
+                if (!IsTruthy(left))
+                    return left;
+            }
+
+            return EvaluateExpr(expr.Right);
+        }
+
         private object Assignment(Assignment expr)
         {
             var value = EvaluateExpr(expr.Value);
 
-            env.Assign(expr.Name, value);
+            _env.Assign(expr.Name, value);
 
             return value;
         }
@@ -117,7 +180,7 @@ namespace Lox
 
         private object Grouping(Grouping expr) => EvaluateExpr(expr.Expression);
 
-        private object Variable(Variable expr) => env.Get(expr.Name);
+        private object Variable(Variable expr) => _env[expr.Name];
 
         private object Unary(Unary expr)
         {

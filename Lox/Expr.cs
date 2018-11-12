@@ -118,4 +118,26 @@ namespace Lox
             _value = value;
         }
     }
+
+    public class Logical : Expr
+    {
+        private readonly Expr _left;
+
+        private readonly Token _operator;
+
+        private readonly Expr _right;
+
+        public Expr Left { get => _left; }
+
+        public Token Operator { get => _operator; }
+
+        public Expr Right { get => _right; }
+
+        public Logical (Expr left, Token oper, Expr right)
+        {
+            _left = left;
+            _operator = oper;
+            _right = right;
+        }
+    }
 }

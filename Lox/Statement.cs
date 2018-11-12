@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Lox
 {
     public class Stmt
@@ -59,6 +61,64 @@ namespace Lox
         public PrintStmt(Expr expression)
         {
             _expression = expression;
+        }
+    }
+
+    public class BlockStmt : Stmt
+    {
+        private readonly IList<Stmt> _statements;
+
+        public IList<Stmt> Statements { get => _statements; }
+
+        public BlockStmt()
+        {
+            _statements = new List<Stmt>();
+        }
+
+        public BlockStmt(IList<Stmt> statements)
+        {
+            _statements = statements ?? new List<Stmt>();
+        }
+    }
+
+    public class IfStmt : Stmt
+    {
+        private readonly Expr _condition;
+
+        private readonly Stmt _thenBlock;
+
+        private readonly Stmt _elseBlock;
+
+        public Expr Condition { get => _condition; }
+
+        public Stmt Then { get => _thenBlock; }
+
+        public Stmt Else { get => _elseBlock; }
+
+        public IfStmt(Expr condition, Stmt thenBlock) : this (condition, thenBlock, null) { }
+
+        public IfStmt(Expr condition, Stmt thenBlock, Stmt elseBlock)
+        {
+            _condition = condition;
+            _thenBlock = thenBlock;
+            _elseBlock = elseBlock;
+        }
+    }
+
+    public class WhileStmt : Stmt
+    {
+        private readonly Expr _condition;        
+
+        private readonly Stmt _body;
+
+        public Expr Condition { get => _condition; }
+
+        public Stmt Body { get => _body; }
+
+        public WhileStmt(Expr condition, Stmt body)
+        {
+            _condition = condition;
+            _body = body;
         }
     }
 }
