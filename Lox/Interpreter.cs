@@ -13,9 +13,9 @@ namespace Lox
         {
             try 
             {
-                bool test = false;
+                bool useless = false;
                 foreach (var s in stmts)
-                    Execute(s, ref test);
+                    Execute(s, ref useless);
             }
             catch (RuntimeError err)
             {
@@ -133,7 +133,12 @@ namespace Lox
                 _env = environment;
 
                 foreach (var s in stmt.Statements)
+                {
                     Execute(s, ref shouldBreak);
+
+                    if (shouldBreak)
+                        break;
+                }
             }
             finally
             {
@@ -152,6 +157,9 @@ namespace Lox
         {
             while (IsTruthy(EvaluateExpr(stmt.Condition)) && !shouldBreak)
                 Execute(stmt.Body, ref shouldBreak);
+
+            if (shouldBreak)
+                shouldBreak = false;
         }
 
         private void BreakStmt(BreakStmt stmt, ref bool shouldBreak)
