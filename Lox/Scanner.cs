@@ -23,6 +23,7 @@ namespace Lox
             ["true"] = TokenType.TRUE,
             ["var"] = TokenType.VAR,
             ["while"] = TokenType.WHILE,
+            ["break"] = TokenType.BREAK,
         };
 
         private readonly IDictionary<char, Action> _scanActions;

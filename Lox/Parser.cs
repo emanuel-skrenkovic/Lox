@@ -38,24 +38,24 @@ namespace Lox
             }
         }
 
-        private Stmt IfStatement()
+        private Stmt IfStatement(bool canBreak = false)
         {
             Consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.");
             var condition = Expression();
             Consume(TokenType.RIGHT_PAREN, "Expect ')' after 'if' condition.");
 
-            var thenBranch = Statement();
+            var thenBranch = Statement(canBreak);
 
             if (Match(TokenType.ELSE))
             {
-                var elseBranch = Statement();
+                var elseBranch = Statement(canBreak);
                 return new IfStmt(condition, thenBranch, elseBranch);
             }
             
             return new IfStmt(condition, thenBranch);
         }
 
-        private Stmt Declaration()
+        private Stmt Declaration(bool canBreak = false)
         {
             if (Check(Peek(), TokenType.IDENTIFIER) && Check(Next(), TokenType.COLON_EQUAL))
                 return DeclarationStmt();
@@ -63,7 +63,7 @@ namespace Lox
             if (Match(TokenType.VAR))
                 return VariableStmt();
 
-            return Statement();
+            return Statement(canBreak);
         }
 
         private Stmt DeclarationStmt()
@@ -96,27 +96,30 @@ namespace Lox
             return new VariableStmt(name, initializer);
         }
 
-        private Stmt Statement()
+        private Stmt Statement(bool canBreak = false)
         {
             if (Match(TokenType.FOR))
-                return ForStatement();
+                return ForStatement(canBreak);
 
             if (Match(TokenType.IF))
-                return IfStatement();
+                return IfStatement(canBreak);
 
             if (Match(TokenType.PRINT))
-                return PrintStatement();
+                return PrintStatement(canBreak);
 
             if (Match(TokenType.WHILE))
-                return WhileStatement();
+                return WhileStatement(canBreak);
+
+            if (Match(TokenType.BREAK))
+                return BreakStatement(canBreak);
             
             if (Match(TokenType.LEFT_BRACE))
-                return BlockStatement();
+                return BlockStatement(canBreak);
 
-            return ExpressionStatement();
+            return ExpressionStatement(canBreak);
         }
 
-        private Stmt ForStatement()
+        private Stmt ForStatement(bool canBreak = false)
         {
             Consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
 
@@ -129,7 +132,7 @@ namespace Lox
             else if (Match(TokenType.VAR))
                 initializer = VariableStmt();
             else 
-                initializer = ExpressionStatement();
+                initializer = ExpressionStatement(canBreak);
 
             Expr condition = null;
             if (!Check(TokenType.SEMICOLON))
@@ -143,7 +146,7 @@ namespace Lox
 
             Consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.");
 
-            var body = Statement();
+            var body = Statement(canBreak);
 
             if (increment != null)
                 body = new BlockStmt(new List<Stmt> { body, new ExpressionStmt(increment) });
@@ -157,7 +160,7 @@ namespace Lox
             return body;
         }
 
-        private PrintStmt PrintStatement()
+        private PrintStmt PrintStatement(bool canBreak = false)
         {
             var value = Expression();
 
@@ -166,18 +169,30 @@ namespace Lox
             return new PrintStmt(value);
         }
 
-        private WhileStmt WhileStatement()
+        private WhileStmt WhileStatement(bool canBreak = false)
         {
             Consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'."); 
             var condition = Expression();
             Consume(TokenType.RIGHT_PAREN, "Expect')' after condition.");
 
-            var body = Statement();
+            var body = Statement(true);
 
             return new WhileStmt(condition, body);
         }
 
-        private ExpressionStmt ExpressionStatement()
+        private Stmt BreakStatement(bool canBreak = false)
+        {
+            Consume(TokenType.SEMICOLON, "Expect ';' after break statement.");
+
+            if (!canBreak)
+                Error(Previous(), "Cannot break outside of loops.");
+            // check if in loop
+            // check nested if etc.
+            
+            return new BreakStmt();
+        }
+
+        private ExpressionStmt ExpressionStatement(bool canBreak = false)
         {
             var expr = Expression();
 
@@ -186,12 +201,12 @@ namespace Lox
             return new ExpressionStmt(expr);
         }
 
-        private BlockStmt BlockStatement()
+        private BlockStmt BlockStatement(bool canBreak = false)
         {
             IList<Stmt> statements = new List<Stmt>();
 
             while (!Check(TokenType.RIGHT_BRACE) && !IsAtEnd)
-                statements.Add(Declaration());
+                statements.Add(Declaration(canBreak));
 
             Consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
 

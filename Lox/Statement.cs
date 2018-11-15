@@ -121,4 +121,9 @@ namespace Lox
             _body = body;
         }
     }
+
+    public class BreakStmt : Stmt
+    {
+
+    }
 }
