@@ -122,8 +122,15 @@ namespace Lox
         }
     }
 
-    public class BreakStmt : Stmt
+    public class LoopControlStmt : Stmt
     {
+        private readonly Token _type;
 
+        public Token Type { get => _type; }
+
+        public LoopControlStmt(Token type)
+        {
+            _type = type;
+        }
     }
 }

@@ -110,8 +110,11 @@ namespace Lox
             if (Match(TokenType.WHILE))
                 return WhileStatement(canBreak);
 
+            if (Match(TokenType.CONTINUE))
+                return LoopControlStatement(canBreak);
+
             if (Match(TokenType.BREAK))
-                return BreakStatement(canBreak);
+                return LoopControlStatement(canBreak);
             
             if (Match(TokenType.LEFT_BRACE))
                 return BlockStatement(canBreak);
@@ -180,16 +183,16 @@ namespace Lox
             return new WhileStmt(condition, body);
         }
 
-        private Stmt BreakStatement(bool canBreak = false)
+        private LoopControlStmt LoopControlStatement(bool canBreak = false)
         {
+            var oper = Previous();
+
             Consume(TokenType.SEMICOLON, "Expect ';' after break statement.");
 
             if (!canBreak)
                 Error(Previous(), "Cannot break outside of loops.");
-            // check if in loop
-            // check nested if etc.
             
-            return new BreakStmt();
+            return new LoopControlStmt(oper);
         }
 
         private ExpressionStmt ExpressionStatement(bool canBreak = false)
