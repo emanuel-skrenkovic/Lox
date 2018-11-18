@@ -270,10 +270,10 @@ namespace Lox
                 var equals = Previous();
                 var value = Assignment();
 
-                if (expr is Variable var)
+                if (expr is VariableExpr var)
                 {
                     var name = var.Name;
-                    return new Assignment(name, value);
+                    return new AssignmentExpr(name, value);
                 }
 
                 Error(equals, "Invalid assignment target");
@@ -290,7 +290,7 @@ namespace Lox
             {
                 var oper = Previous();
                 var right = LogicAnd();
-                expr = new Logical(expr, oper, right);
+                expr = new LogicalExpr(expr, oper, right);
             } 
 
             return expr;
@@ -304,7 +304,7 @@ namespace Lox
             {
                 var oper = Previous();
                 var right = Conditional();
-                expr = new Logical(expr, oper, right);
+                expr = new LogicalExpr(expr, oper, right);
             }
 
             return expr;
@@ -339,7 +339,7 @@ namespace Lox
 
                 var right = Equality();
 
-                expr = new Ternary(expr, left, right);
+                expr = new TernaryExpr(expr, left, right);
             }
 
             return expr;
@@ -354,7 +354,7 @@ namespace Lox
                 var oper = Previous();
                 var right = Comparison();
 
-                expr = new Binary(expr, oper, right);
+                expr = new BinaryExpr(expr, oper, right);
             }
 
             return expr;
@@ -368,7 +368,7 @@ namespace Lox
             {
                 var oper = Previous();
                 var right = Addition();
-                expr = new Binary(expr, oper, right);
+                expr = new BinaryExpr(expr, oper, right);
             }
 
             return expr;
@@ -382,7 +382,7 @@ namespace Lox
             {
                 var oper = Previous();
                 var right = Multiplication();
-                expr = new Binary(expr, oper, right);
+                expr = new BinaryExpr(expr, oper, right);
             }
 
             return expr;
@@ -396,7 +396,7 @@ namespace Lox
             {
                 var oper = Previous();
                 var right = Unary();
-                expr = new Binary(expr, oper, right);
+                expr = new BinaryExpr(expr, oper, right);
             }
 
             return expr;
@@ -409,7 +409,7 @@ namespace Lox
                 var oper = Previous();
                 var right = Unary();
 
-                return new Unary(oper, right);
+                return new UnaryExpr(oper, right);
             }
 
             return Call();
@@ -447,32 +447,62 @@ namespace Lox
 
             var paren = Consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
 
-            return new Call(callee, paren, arguments);
+            return new CallExpr(callee, paren, arguments);
         }
 
         private Expr Primary()
         {
             if (Match(TokenType.FALSE)) 
-                return new Literal(false);
+                return new LiteralExpr(false);
             if (Match(TokenType.TRUE)) 
-                return new Literal(true);
+                return new LiteralExpr(true);
             if (Match(TokenType.NIL))
-                return new Literal(null);
+                return new LiteralExpr(null);
 
             if (Match(TokenType.NUMBER, TokenType.STRING)) 
-                return new Literal(Previous().Literal);
+                return new LiteralExpr(Previous().Literal);
 
             if (Match(TokenType.IDENTIFIER))
-                return new Variable(Previous());
+                return new VariableExpr(Previous());
+
+            if (Match(TokenType.FUN))
+                return Function();
 
             if (Match(TokenType.LEFT_PAREN))
             {
                 var expr = Expression();
                 Consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
-                return new Grouping(expr);
+                return new GroupingExpr(expr);
             }
 
             throw Error(Peek(), "Expect expression");
+        }
+
+        private Expr Function()
+        {
+            Consume(TokenType.LEFT_PAREN, $"Expect '(' after anonymous function.");
+
+            var name = Previous();
+
+            var parameters = new List<Token>();
+
+            if (!Check(TokenType.RIGHT_PAREN))
+            {
+                do
+                {
+                    if (parameters.Count >= 8)
+                        Error(Peek(), "Cannot have more than 8 parameters.");
+
+                    parameters.Add(Consume(TokenType.IDENTIFIER, "Expect parameter name."));
+                } while (Match(TokenType.COMMA));
+            }
+
+            Consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.");
+
+            Consume(TokenType.LEFT_BRACE, $"Expect '{TokenType.LEFT_BRACE}' before anonymous function body.");
+            var body = BlockStatement();
+
+            return new FunctionExpr(parameters, body);
         }
 
         private void Synchronize()

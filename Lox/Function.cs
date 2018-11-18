@@ -43,6 +43,6 @@ namespace Lox
             return null;
         }
 
-        public override string ToString() => $"<fn {_declaration.Name.Lexeme}>";
+        public override string ToString() => $"<fn {_declaration.Name?.Lexeme ?? "anonymous"}>";
     }
 }

@@ -8,22 +8,22 @@ namespace Lox
         {
             switch (expr)
             {
-                case Ternary ternary:
+                case TernaryExpr ternary:
                     return Parenthesize("conditional", ternary.Cond, ternary.Left, ternary.Right);
 
-                case Binary binary:
+                case BinaryExpr binary:
                     return Parenthesize(binary.Operator.Lexeme, binary.Left, binary.Right);
 
-                case Grouping grouping:
+                case GroupingExpr grouping:
                     return Parenthesize("group", grouping.Expression);
 
-                case Literal literal:
+                case LiteralExpr literal:
                     if (literal.Value == null) 
                         return "nil";
 
                     return literal.Value.ToString();
 
-                case Unary unary:
+                case UnaryExpr unary:
                     return Parenthesize(unary.Operator.Lexeme, unary.Right);
                 
                 default: return "empty";

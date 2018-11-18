@@ -89,32 +89,35 @@ namespace Lox
             {
                 switch (expr)
                 {
-                    case Logical logical:
+                    case LogicalExpr logical:
                         return Logical(logical);
 
-                    case Assignment assignment:
+                    case AssignmentExpr assignment:
                         return Assignment(assignment);
 
-                    case Ternary ternary:
+                    case TernaryExpr ternary:
                         return Ternary(ternary);
 
-                    case Binary binary:
+                    case BinaryExpr binary:
                         return Binary(binary);
 
-                    case Call call:
+                    case CallExpr call:
                         return Call(call);
 
-                    case Unary unary:
+                    case UnaryExpr unary:
                         return Unary(unary);
 
-                    case Grouping grouping:
+                    case GroupingExpr grouping:
                         return Grouping(grouping);
 
-                    case Variable variable:
+                    case VariableExpr variable:
                         return Variable(variable);
 
-                    case Literal literal:
+                    case LiteralExpr literal:
                         return Literal(literal);
+
+                    case FunctionExpr function:
+                        return Function(function);
 
                     default:
                         return null;
@@ -210,7 +213,7 @@ namespace Lox
             throw new Return(value);
         }
 
-        private object Logical(Logical expr)
+        private object Logical(LogicalExpr expr)
         {
             var left = EvaluateExpr(expr.Left);
 
@@ -228,7 +231,7 @@ namespace Lox
             return EvaluateExpr(expr.Right);
         }
 
-        private object Assignment(Assignment expr)
+        private object Assignment(AssignmentExpr expr)
         {
             var value = EvaluateExpr(expr.Value);
 
@@ -237,13 +240,13 @@ namespace Lox
             return value;
         }
 
-        private object Literal(Literal expr) => expr.Value;
+        private object Literal(LiteralExpr expr) => expr.Value;
 
-        private object Grouping(Grouping expr) => EvaluateExpr(expr.Expression);
+        private object Grouping(GroupingExpr expr) => EvaluateExpr(expr.Expression);
 
-        private object Variable(Variable expr) => _env[expr.Name];
+        private object Variable(VariableExpr expr) => _env[expr.Name];
 
-        private object Call(Call expr)
+        private object Call(CallExpr expr)
         {
             var callee = EvaluateExpr(expr.Callee);
 
@@ -263,7 +266,14 @@ namespace Lox
             return function.Call(this, arguments);
         }
 
-        private object Unary(Unary expr)
+        private object Function(FunctionExpr expr)
+        {
+            var stmt = new FunctionStmt(null, expr.Params, expr.Body);
+
+            return new Function(stmt, _env);
+        }
+
+        private object Unary(UnaryExpr expr)
         {
             var right = EvaluateExpr(expr.Right);
 
@@ -280,7 +290,7 @@ namespace Lox
             return null;
         }
 
-        private object Binary(Binary expr)
+        private object Binary(BinaryExpr expr)
         {
             var left = EvaluateExpr(expr.Left);
             var right = EvaluateExpr(expr.Right);
@@ -338,7 +348,7 @@ namespace Lox
             }
         }
         
-        private object Ternary(Ternary expr)
+        private object Ternary(TernaryExpr expr)
         {
             var cond = EvaluateExpr(expr.Cond);
 

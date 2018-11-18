@@ -6,7 +6,7 @@ namespace Lox
     {
     }
 
-    public class Ternary : Expr
+    public class TernaryExpr : Expr
     {
         protected readonly Expr _cond;
 
@@ -20,7 +20,7 @@ namespace Lox
 
         public Expr Right { get => _right; }
 
-        public Ternary(Expr cond, Expr left, Expr right)
+        public TernaryExpr(Expr cond, Expr left, Expr right)
         {
             _cond = cond;
             _left = left;
@@ -28,7 +28,7 @@ namespace Lox
         }
     }
 
-    public class Binary : Expr
+    public class BinaryExpr : Expr
     {
         protected readonly Expr _left;
 
@@ -43,7 +43,7 @@ namespace Lox
         public Token Operator { get => _operator; }
 
 
-        public Binary(Expr left, Token oper, Expr right)
+        public BinaryExpr(Expr left, Token oper, Expr right)
         {
             _left = left;
             _operator = oper;
@@ -51,43 +51,43 @@ namespace Lox
         }
     }
 
-    public class Grouping : Expr
+    public class GroupingExpr : Expr
     {
         private readonly Expr _expression;
 
         public Expr Expression { get => _expression; }
 
-        public Grouping(Expr expression)
+        public GroupingExpr(Expr expression)
         {
             _expression = expression;
         }
     }
 
-    public class Literal : Expr
+    public class LiteralExpr : Expr
     {
         private readonly object _value;
 
         public object Value { get => _value; }
 
-        public Literal(object value)
+        public LiteralExpr(object value)
         {
             _value = value;
         }
     }
 
-    public class Variable : Expr
+    public class VariableExpr : Expr
     {
         private readonly Token _name;
 
         public Token Name { get => _name; }
 
-        public Variable(Token name)
+        public VariableExpr(Token name)
         {
             _name = name;
         }
     }
 
-    public class Unary : Expr
+    public class UnaryExpr : Expr
     {
         private readonly Token _operator;
 
@@ -97,14 +97,14 @@ namespace Lox
 
         public Expr Right { get => _right; }
 
-        public Unary(Token oper, Expr right)
+        public UnaryExpr(Token oper, Expr right)
         {
             _operator = oper;
             _right = right;
         }
     }
 
-    public class Assignment : Expr
+    public class AssignmentExpr : Expr
     {
         private readonly Token _name;
 
@@ -114,14 +114,14 @@ namespace Lox
 
         public Expr Value { get => _value; }
 
-        public Assignment(Token name, Expr value)
+        public AssignmentExpr(Token name, Expr value)
         {
             _name = name;
             _value = value;
         }
     }
 
-    public class Logical : Expr
+    public class LogicalExpr : Expr
     {
         private readonly Expr _left;
 
@@ -135,7 +135,7 @@ namespace Lox
 
         public Expr Right { get => _right; }
 
-        public Logical (Expr left, Token oper, Expr right)
+        public LogicalExpr (Expr left, Token oper, Expr right)
         {
             _left = left;
             _operator = oper;
@@ -143,7 +143,7 @@ namespace Lox
         }
     }
 
-    public class Call : Expr
+    public class CallExpr : Expr
     {
         private readonly Expr _callee;
 
@@ -157,11 +157,28 @@ namespace Lox
 
         public IList<Expr> Arguments { get => _arguments; }
 
-        public Call(Expr callee, Token paren, IList<Expr> arguments)
+        public CallExpr(Expr callee, Token paren, IList<Expr> arguments)
         {
             _callee = callee;
             _paren = paren;
             _arguments = arguments;
         }
+    }
+
+    public class FunctionExpr : Expr
+    {
+        private readonly IList<Token> _params;
+
+        private readonly BlockStmt _body;
+
+        public IList<Token> Params { get => _params; }
+
+        public BlockStmt Body { get => _body; }
+
+        public FunctionExpr(IList<Token> parameters, BlockStmt body)
+        {
+            _params = parameters;
+            _body = body;
+        }  
     }
 }
