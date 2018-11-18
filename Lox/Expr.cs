@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Lox
 {
     public abstract class Expr
@@ -138,6 +140,28 @@ namespace Lox
             _left = left;
             _operator = oper;
             _right = right;
+        }
+    }
+
+    public class Call : Expr
+    {
+        private readonly Expr _callee;
+
+        private readonly Token _paren;
+
+        private readonly IList<Expr> _arguments;
+
+        public Expr Callee { get => _callee; }
+
+        public Token Paren { get => _paren; }
+
+        public IList<Expr> Arguments { get => _arguments; }
+
+        public Call(Expr callee, Token paren, IList<Expr> arguments)
+        {
+            _callee = callee;
+            _paren = paren;
+            _arguments = arguments;
         }
     }
 }

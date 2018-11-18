@@ -133,4 +133,43 @@ namespace Lox
             _type = type;
         }
     }
+
+    public class FunctionStmt : Stmt
+    {
+        private readonly Token _name;
+
+        private readonly IList<Token> _params;
+
+        private readonly BlockStmt _body;
+
+        public Token Name { get => _name; }
+
+        public IList<Token> Params { get => _params; }
+
+        public BlockStmt Body { get => _body; }
+
+        public FunctionStmt(Token name, IList<Token> parameters, BlockStmt body)
+        {
+            _name = name;
+            _params = parameters;
+            _body = body;
+        }
+    }
+
+    public class ReturnStmt : Stmt
+    {
+        private readonly Token _keyword;
+
+        private readonly Expr _value; 
+
+        public Token Keyword { get => _keyword; }
+
+        public Expr Value { get => _value; }
+
+        public ReturnStmt(Token keyword, Expr value)
+        {
+            _keyword = keyword;
+            _value = value;
+        }
+    }
 }

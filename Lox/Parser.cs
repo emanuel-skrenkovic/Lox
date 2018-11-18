@@ -11,10 +11,7 @@ namespace Lox
 
         private int _current;
 
-        private bool IsAtEnd 
-        {
-            get => IsEndOfFile();
-        }
+        private bool IsAtEnd  { get => IsEndOfFile(); }
 
         public Parser(IList<Token> tokens)
         {
@@ -55,10 +52,26 @@ namespace Lox
             return new IfStmt(condition, thenBranch);
         }
 
+        private Stmt ReturnStatement(bool canBreak = false)
+        {
+            var keyword = Previous();
+
+            Expr value = null;
+            if (!Check(TokenType.SEMICOLON))
+                value = Expression();
+
+            Consume(TokenType.SEMICOLON, "EXPECT ';' after return value"); 
+
+            return new ReturnStmt(keyword, value);
+        }
+
         private Stmt Declaration(bool canBreak = false)
         {
+            if (Match(TokenType.FUN))
+                return FunctionStmt("function");
+
             if (Check(Peek(), TokenType.IDENTIFIER) && Check(Next(), TokenType.COLON_EQUAL))
-                return DeclarationStmt();
+                return DeclareAssignStmt();
 
             if (Match(TokenType.VAR))
                 return VariableStmt();
@@ -66,7 +79,34 @@ namespace Lox
             return Statement(canBreak);
         }
 
-        private Stmt DeclarationStmt()
+        private Stmt FunctionStmt(string kind)
+        {
+            var name = Consume(TokenType.IDENTIFIER, $"Expect {kind} name.");
+
+            Consume(TokenType.LEFT_PAREN, $"Expect '(' after {kind} name.");
+
+            var parameters = new List<Token>();
+
+            if (!Check(TokenType.RIGHT_PAREN))
+            {
+                do 
+                {
+                    if (parameters.Count >= 8)
+                        Error(Peek(), "Cannot have more than 8 parameters.");
+
+                    parameters.Add(Consume(TokenType.IDENTIFIER, "Expect parameter name.")); 
+                } while (Match(TokenType.COMMA));
+            }
+
+            Consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters.");
+
+            Consume(TokenType.LEFT_BRACE, $"Expect '{TokenType.LEFT_BRACE}' before {kind} body.");
+            var body = BlockStatement();
+
+            return new FunctionStmt(name, parameters, body);
+        }
+
+        private Stmt DeclareAssignStmt()
         {
             Advance();
 
@@ -104,6 +144,9 @@ namespace Lox
             if (Match(TokenType.IF))
                 return IfStatement(canBreak);
 
+            if (Match(TokenType.RETURN))
+                return ReturnStatement(canBreak);
+
             if (Match(TokenType.PRINT))
                 return PrintStatement(canBreak);
 
@@ -131,7 +174,7 @@ namespace Lox
             if (Match(TokenType.SEMICOLON))
                 initializer = null;
             else if (Match(TokenType.IDENTIFIER) && Check(Peek(), TokenType.COLON_EQUAL))
-                initializer = DeclarationStmt();
+                initializer = DeclareAssignStmt();
             else if (Match(TokenType.VAR))
                 initializer = VariableStmt();
             else 
@@ -369,7 +412,42 @@ namespace Lox
                 return new Unary(oper, right);
             }
 
-            return Primary();
+            return Call();
+        }
+
+        private Expr Call()
+        {
+            var expr = Primary();
+
+            while (true)
+            {
+                if (Match(TokenType.LEFT_PAREN))
+                    expr = FinishCall(expr);
+                else
+                    break;
+            }
+
+            return expr;
+        }
+
+        private Expr FinishCall(Expr callee)
+        {
+            IList<Expr> arguments = new List<Expr>();
+
+            if (!Check(TokenType.RIGHT_PAREN))
+            {
+                do 
+                {
+                    if (arguments.Count >= 8)
+                        Error(Peek(), "Cannot have more than 8 arguments.");
+
+                    arguments.Add(Expression());
+                } while (Match(TokenType.COMMA));
+            }
+
+            var paren = Consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.");
+
+            return new Call(callee, paren, arguments);
         }
 
         private Expr Primary()

@@ -5,9 +5,22 @@ namespace Lox
 {
     public class Interpreter
     {
-        private Environment _env = new Environment();
+        private readonly static Environment _globals = new Environment();
 
-        public Interpreter() { }
+        private Environment _env = _globals;
+
+        public Environment Globals { get => _globals; }
+
+        public Interpreter() 
+        { 
+            DefineGlobals();
+        }
+
+        private void DefineGlobals()
+        {
+            ICallable clock = new Clock();
+            _globals.Define("clock", clock);
+        }
 
         public void Interpret(IList<Stmt> stmts)
         {
@@ -59,6 +72,14 @@ namespace Lox
                 case LoopControlStmt loopControlStmt:
                     LoopControlStmt(loopControlStmt, ref shouldBreak, ref shouldContinue);
                     break;
+
+                case FunctionStmt functionStmt:
+                    FunctionStmt(functionStmt);
+                    break;
+
+                case ReturnStmt returnStmt:
+                    ReturnStmt(returnStmt);
+                    break;
             }
         }
 
@@ -79,6 +100,9 @@ namespace Lox
 
                     case Binary binary:
                         return Binary(binary);
+
+                    case Call call:
+                        return Call(call);
 
                     case Unary unary:
                         return Unary(unary);
@@ -126,7 +150,7 @@ namespace Lox
 
         private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
-        private void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
+        internal void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
         {
             var prevEnv = _env;
             try
@@ -172,6 +196,20 @@ namespace Lox
             shouldContinue = !shouldBreak;
         }
 
+        private void FunctionStmt(FunctionStmt stmt)
+        {
+            var function = new Function(stmt, _env);
+
+            _env.Define(stmt.Name.Lexeme, function);
+        }
+
+        private void ReturnStmt(ReturnStmt stmt)
+        {
+            var value = EvaluateExpr(stmt.Value) ?? null;
+
+            throw new Return(value);
+        }
+
         private object Logical(Logical expr)
         {
             var left = EvaluateExpr(expr.Left);
@@ -204,6 +242,26 @@ namespace Lox
         private object Grouping(Grouping expr) => EvaluateExpr(expr.Expression);
 
         private object Variable(Variable expr) => _env[expr.Name];
+
+        private object Call(Call expr)
+        {
+            var callee = EvaluateExpr(expr.Callee);
+
+            var arguments = new List<object>();
+
+            foreach (var argument in expr.Arguments)
+                arguments.Add(EvaluateExpr(argument));
+
+            if (!(callee is ICallable))
+                throw new RuntimeError(expr.Paren, "Can only call functions and classes.");
+
+            var function = (ICallable)callee;
+
+            if (arguments.Count != function.Arity)
+                throw new RuntimeError(expr.Paren, $"Expected {function.Arity} arguments but got {arguments.Count}.");
+
+            return function.Call(this, arguments);
+        }
 
         private object Unary(Unary expr)
         {
