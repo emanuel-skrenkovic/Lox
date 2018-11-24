@@ -14,10 +14,6 @@ namespace ConsoleLox
                 return;
             }
 
-            // args = new string[1];
-
-            // args[0] = @"./TestCases/assign";
-
             var source = File.ReadAllText(args[0]);
 
             var scanner = new Scanner(source);
@@ -25,8 +21,11 @@ namespace ConsoleLox
 
             Parser parser = new Parser(scanner.Tokens);
             var stmts = parser.Parse();
-            // Console.WriteLine(AstPrinter.Print(expression));
+
             var interpreter = new Interpreter();
+
+            var resolver = new Resolver(interpreter);
+            resolver.Resolve(stmts);
 
             interpreter.Interpret(stmts);
         }
