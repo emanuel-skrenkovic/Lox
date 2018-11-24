@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lox
 {
     public class Interpreter
     {
         private readonly static Environment _globals = new Environment();
+
+        private readonly IDictionary<Expr, int> _locals = new Dictionary<Expr, int>();
 
         private Environment _env = _globals;
 
@@ -130,6 +133,8 @@ namespace Lox
             }
         }
 
+        internal void Resolve(Expr expr, int depth) => _locals.Add(expr, depth);
+
         private void IfStmt(IfStmt stmt, ref bool shouldBreak, ref bool shouldContinue)
         {
             if (IsTruthy(EvaluateExpr(stmt.Condition)))
@@ -153,14 +158,19 @@ namespace Lox
 
         private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
-        internal void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
+        internal void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue)
+        {
+            ExecuteBlock(stmt.Statements, environment, ref shouldBreak, ref shouldContinue);
+        }
+
+        private void ExecuteBlock(IList<Stmt> statements, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
         {
             var prevEnv = _env;
             try
             {
                 _env = environment;
 
-                foreach (var s in stmt.Statements)
+                foreach (var s in statements)
                 {
                     Execute(s, ref shouldBreak, ref shouldContinue);
 
@@ -235,7 +245,10 @@ namespace Lox
         {
             var value = EvaluateExpr(expr.Value);
 
-            _env.Assign(expr.Name, value);
+            if (_locals.TryGetValue(expr, out var distance))
+                _env.AssignAt(distance, expr.Name, value);                
+            else
+                _globals.Assign(expr.Name, value);
 
             return value;
         }
@@ -244,16 +257,13 @@ namespace Lox
 
         private object Grouping(GroupingExpr expr) => EvaluateExpr(expr.Expression);
 
-        private object Variable(VariableExpr expr) => _env[expr.Name];
+        private object Variable(VariableExpr expr) => LookUpVariable(expr.Name, expr);
 
         private object Call(CallExpr expr)
         {
             var callee = EvaluateExpr(expr.Callee);
 
-            var arguments = new List<object>();
-
-            foreach (var argument in expr.Arguments)
-                arguments.Add(EvaluateExpr(argument));
+            var arguments = expr.Arguments.Select(EvaluateExpr).ToList();
 
             if (!(callee is ICallable))
                 throw new RuntimeError(expr.Paren, "Can only call functions and classes.");
@@ -270,7 +280,7 @@ namespace Lox
         {
             var stmt = new FunctionStmt(null, expr.Params, expr.Body);
 
-            return new Function(stmt, _env);
+            return new Function(stmt, _env); 
         }
 
         private object Unary(UnaryExpr expr)
@@ -353,6 +363,14 @@ namespace Lox
             var cond = EvaluateExpr(expr.Cond);
 
             return IsTruthy(cond) ? EvaluateExpr(expr.Left) : EvaluateExpr(expr.Right);
+        }
+
+        private object LookUpVariable(Token name, Expr expr)
+        {
+            if (_locals.TryGetValue(expr, out var distance))
+                return _env.GetAt(distance, name.Lexeme);
+            else
+                return _globals.Get(name);
         }
 
         private void CheckNumberOperand(Token oper, object operand)

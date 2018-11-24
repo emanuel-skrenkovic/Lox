@@ -23,10 +23,7 @@ namespace Lox
             _enclosing = enclosing;
         }
 
-        public void Define(string name, object value)
-        {
-            Values[name] = value;
-        }
+        public void Define(string name, object value) => Values[name] = value;
 
         public void Assign(Token name, object value)
         {
@@ -45,6 +42,8 @@ namespace Lox
             throw new RuntimeError(name, $"Undefined variable '{name.Lexeme}'.");
         }
 
+        public void AssignAt(int distance, Token name, object value) => Ancestor(distance).Values[name.Lexeme] = value; // not safe
+
         public object Get(Token name)
         {
             if (Values.ContainsKey(name.Lexeme))
@@ -59,6 +58,25 @@ namespace Lox
                 return _enclosing[name];
 
             throw new RuntimeError(name, $"Undefined variable '{name.Lexeme}'.");
+        }
+
+        public object GetAt(int distance, string name)
+        {
+            var ancestor = Ancestor(distance);
+
+            ancestor.Values.TryGetValue(name, out var value);
+
+            return value;
+        } 
+
+        public Environment Ancestor(int distance)
+        {
+            var environment = this;
+
+            for (int i = 0; i < distance; i++)
+                environment = environment._enclosing;
+
+            return environment;
         }
     }
 }

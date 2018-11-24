@@ -28,8 +28,8 @@ namespace Lox
             foreach (var call in paramArgPairs)
                 environment.Define(call.Parameter.Lexeme, call.Argument);
 
-            bool shouldContinue = false;
-            bool shouldBreak = false;
+            var shouldContinue = false;
+            var shouldBreak = false;
 
             try 
             {

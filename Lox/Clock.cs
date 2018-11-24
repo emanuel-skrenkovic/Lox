@@ -7,7 +7,7 @@ namespace Lox
     {
         public int Arity { get => 0; }        
 
-        public object Call(Interpreter interpreter, IList<object> arguments) => (double)DateTime.Now.Millisecond;
+        public object Call(Interpreter interpreter, IList<object> arguments) => (double)DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
 
         public override string ToString() => "<native fn>";
     }
