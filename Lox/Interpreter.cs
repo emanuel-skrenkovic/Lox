@@ -44,6 +44,10 @@ namespace Lox
         {
             switch (stmt)
             {
+                case ClassStmt classStmt:
+                    ClassStmt(classStmt);
+                    break;
+
                 case IfStmt ifStmt:
                     IfStmt(ifStmt, ref shouldBreak, ref shouldContinue);
                     break;
@@ -122,6 +126,15 @@ namespace Lox
                     case FunctionExpr function:
                         return Function(function);
 
+                    case GetExpr get:
+                        return Get(get);
+
+                    case SetExpr set:
+                        return Set(set);
+
+                    case ThisExpr thisExpr:
+                        return This(thisExpr);
+
                     default:
                         return null;
                 }
@@ -134,6 +147,20 @@ namespace Lox
         }
 
         internal void Resolve(Expr expr, int depth) => _locals.Add(expr, depth);
+
+        private void ClassStmt(ClassStmt stmt)
+        {
+            _env.Define(stmt.Name.Lexeme, null);
+
+            var methods = new Dictionary<string, Function>();
+
+            foreach (var method in stmt.Methods)
+                methods[method.Name.Lexeme] = new Function(method, _env, method.Name.Lexeme == "init");
+
+            var klass = new Class(stmt.Name.Lexeme, methods);
+
+            _env.Assign(stmt.Name, klass);
+        }
 
         private void IfStmt(IfStmt stmt, ref bool shouldBreak, ref bool shouldContinue)
         {
@@ -158,10 +185,8 @@ namespace Lox
 
         private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
-        internal void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue)
-        {
-            ExecuteBlock(stmt.Statements, environment, ref shouldBreak, ref shouldContinue);
-        }
+        internal void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
+            => ExecuteBlock(stmt.Statements, environment, ref shouldBreak, ref shouldContinue);
 
         private void ExecuteBlock(IList<Stmt> statements, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
         {
@@ -282,6 +307,32 @@ namespace Lox
 
             return new Function(stmt, _env); 
         }
+
+        private object Get(GetExpr expr)
+        {
+            var obj = EvaluateExpr(expr.Object);
+
+            if (obj is Instance instance)
+                return instance.Get(expr.Name);
+
+            throw new RuntimeError(expr.Name, "Only instances have properties.");
+        }
+
+        private object Set(SetExpr expr)
+        {
+            var obj= EvaluateExpr(expr.Object);
+
+            if (!(obj is Instance instance))
+                throw new RuntimeError(expr.Name, "Only instances have fields.");
+
+            var value = EvaluateExpr(expr.Value);
+
+            instance.Set(expr.Name, value);
+
+            return value;
+        }
+
+        private object This(ThisExpr expr) => LookUpVariable(expr.Keyword, expr);
 
         private object Unary(UnaryExpr expr)
         {

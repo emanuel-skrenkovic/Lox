@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lox
 {
@@ -67,6 +68,9 @@ namespace Lox
 
         private Stmt Declaration(bool canBreak = false)
         {
+            if (Match(TokenType.CLASS))
+                return ClassDeclaration();
+
             if (Match(TokenType.FUN))
                 return FunctionStmt("function");
 
@@ -77,6 +81,21 @@ namespace Lox
                 return VariableStmt();
 
             return Statement(canBreak);
+        }
+
+        private Stmt ClassDeclaration()
+        {
+            var name = Consume(TokenType.IDENTIFIER, "Expect class name.");
+            Consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+            var methods = new List<FunctionStmt>();
+
+            while (!Check(TokenType.RIGHT_BRACE) && !IsAtEnd)
+                methods.Add((FunctionStmt)FunctionStmt("method"));
+
+            Consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+            return new ClassStmt(name, null, methods);
         }
 
         private Stmt FunctionStmt(string kind)
@@ -275,6 +294,8 @@ namespace Lox
                     var name = var.Name;
                     return new AssignmentExpr(name, value);
                 }
+                else if (expr is GetExpr get)
+                    return new SetExpr(get.Object, get.Name, value);
 
                 Error(equals, "Invalid assignment target");
             }
@@ -423,6 +444,11 @@ namespace Lox
             {
                 if (Match(TokenType.LEFT_PAREN))
                     expr = FinishCall(expr);
+                else if (Match(TokenType.DOT))
+                {
+                    var name = Consume(TokenType.IDENTIFIER, "Expect property name after '.'.");
+                    expr = new GetExpr(expr, name);
+                }
                 else
                     break;
             }
@@ -461,6 +487,9 @@ namespace Lox
 
             if (Match(TokenType.NUMBER, TokenType.STRING)) 
                 return new LiteralExpr(Previous().Literal);
+
+            if (Match(TokenType.THIS))
+                return new ThisExpr(Previous());
 
             if (Match(TokenType.IDENTIFIER))
                 return new VariableExpr(Previous());

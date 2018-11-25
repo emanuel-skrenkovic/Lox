@@ -181,4 +181,55 @@ namespace Lox
             _body = body;
         }  
     }
+
+    public class GetExpr : Expr
+    {
+        private readonly Expr _object;
+
+        private readonly Token _name;
+
+        public Expr Object { get => _object; }
+
+        public Token Name { get => _name; }
+
+        public GetExpr(Expr obj, Token name)
+        {
+            _object = obj;
+            _name = name;
+        }
+    }
+
+    public class SetExpr : Expr
+    {
+        private readonly Expr _object;
+
+        private readonly Token _name;
+
+        private readonly Expr _value;
+
+        public Expr Object { get => _object; }
+
+        public Token Name { get => _name; }
+
+        public Expr Value { get => _value; }
+
+        public SetExpr(Expr obj, Token name, Expr value)
+        {
+            _object = obj;
+            _name = name;
+            _value = value;
+        }
+    }
+
+    public class ThisExpr : Expr
+    {
+        private Token _keyword;
+
+        public Token Keyword { get => _keyword; }
+
+        public ThisExpr(Token keyword)
+        {
+            _keyword = keyword;
+        }
+    }
 }

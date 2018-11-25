@@ -172,4 +172,26 @@ namespace Lox
             _value = value;
         }
     }
+
+    public class ClassStmt : Stmt
+    {
+        private readonly Token _name;
+
+        private readonly VariableExpr _superclass;
+
+        private readonly IList<FunctionStmt> _methods;
+
+        public Token Name { get => _name; }
+        
+        public VariableExpr Superclass { get => _superclass; }
+
+        public IList<FunctionStmt> Methods { get => _methods; }
+
+        public ClassStmt(Token name, VariableExpr superclass, IList<FunctionStmt> methods)
+        {
+            _name = name;
+            _superclass = superclass;
+            _methods = methods;
+        }
+    }
 }

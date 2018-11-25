@@ -9,12 +9,17 @@ namespace Lox
 
         private readonly Environment _closure;
 
+        private readonly bool _isInitializer;
+
         public int Arity { get => _declaration.Params.Count; }
 
-        public Function(FunctionStmt declaration, Environment closure)
+        public bool IsInitializer { get => _isInitializer; }
+
+        public Function(FunctionStmt declaration, Environment closure, bool isInitializer = false)
         {
             _declaration = declaration;
             _closure = closure;
+            _isInitializer = isInitializer;
         }
 
         public object Call(Interpreter interpreter, IList<object> arguments)
@@ -37,10 +42,24 @@ namespace Lox
             }
             catch (Return returnValue)
             {
+                if (IsInitializer)
+                    return _closure.GetAt(0, "this");
+
                 return returnValue.Value;
             }
 
+            if (IsInitializer)
+                return _closure.GetAt(0, "this");
+
             return null;
+        }
+
+        public Function Bind(Instance instance)
+        {
+            var environment = new Environment(_closure);
+            environment.Define("this", instance);
+
+            return new Function(_declaration, environment, IsInitializer);
         }
 
         public override string ToString() => $"<fn {_declaration.Name?.Lexeme ?? "anonymous"}>";

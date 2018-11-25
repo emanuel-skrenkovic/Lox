@@ -11,10 +11,20 @@ namespace Lox
 
         private FunctionType _currentFunction = FunctionType.NONE;
 
+        private ClassType _currentClass = ClassType.NONE;
+
         private enum FunctionType 
         {
             NONE,
             FUNCTION,
+            METHOD,
+            INITIALIZER,
+        }
+
+        private enum ClassType
+        {
+            NONE,
+            CLASS,
         }
 
         public Resolver(Interpreter interpreter)
@@ -32,6 +42,14 @@ namespace Lox
         {
             switch (expression)
             {
+                case GetExpr getExpr:
+                    ResolveGetExpr(getExpr);
+                    break;
+
+                case SetExpr setExpr:
+                    ResolveSetExpr(setExpr);
+                    break;
+
                 case VariableExpr variableExpr:
                     ResolveVariableExpr(variableExpr);
                     break;
@@ -71,6 +89,10 @@ namespace Lox
                 case FunctionExpr function:
                     ResolveFunctionExpr(function, FunctionType.FUNCTION);
                     break;
+
+                case ThisExpr thisExpr:
+                    ResolveThisExpr(thisExpr);
+                    break;
             }
         }
 
@@ -78,6 +100,10 @@ namespace Lox
         {
             switch (statement)
             {
+                case ClassStmt classStmt:
+                    ResolveClassStmt(classStmt);
+                    break;
+
                 case IfStmt ifStmt:
                     ResolveIfStmt(ifStmt);
                     break;
@@ -154,7 +180,33 @@ namespace Lox
             Declare(stmt.Name);
             Define(stmt.Name);
 
-            ResolveFunction(stmt);
+            ResolveFunction(stmt, FunctionType.FUNCTION);
+        }
+
+        private void ResolveClassStmt(ClassStmt stmt)
+        {
+            var enclosingClass = _currentClass;
+            _currentClass = ClassType.CLASS;
+
+            Declare(stmt.Name);
+            Define(stmt.Name);
+
+            BeginScope();
+            _scopes.Peek()["this"] = true;
+
+            foreach (var method in stmt.Methods)
+            {
+                var declaration = FunctionType.METHOD;
+
+                if (method.Name.Lexeme == "init")
+                    declaration = FunctionType.INITIALIZER;
+
+                ResolveFunction(method, declaration);
+            }
+
+            EndScope();
+
+            _currentClass = enclosingClass;
         }
 
         private void ResolveIfStmt(IfStmt stmt)
@@ -174,7 +226,12 @@ namespace Lox
                 Lox.Error(stmt.Keyword, "Cannot return from top-level code.");
 
             if (stmt.Value != null)
+            {
+                if (_currentFunction == FunctionType.INITIALIZER)
+                    Lox.Error(stmt.Keyword, "Cannot return a value from an initializer.");
+
                 Resolve(stmt.Value);
+            }
         }
 
         private void ResolveWhileStmt(WhileStmt stmt)
@@ -186,6 +243,14 @@ namespace Lox
         private void ResolveExpressionStmt(ExpressionStmt stmt) => Resolve(stmt.Expression);
 
         private void ResolveLoopControlStmt(LoopControlStmt stmt) { }
+
+        private void ResolveGetExpr(GetExpr expr) => Resolve(expr.Object);
+
+        private void ResolveSetExpr(SetExpr expr)
+        {
+            Resolve(expr.Value);
+            Resolve(expr.Object);
+        }
 
         private void ResolveVariableExpr(VariableExpr expr)
         {
@@ -256,6 +321,13 @@ namespace Lox
             _currentFunction = enclosingFunction;
         }
 
+        private void ResolveThisExpr(ThisExpr expr)
+        {
+            if (_currentClass == ClassType.NONE)
+                Lox.Error(expr.Keyword, "Cannot use 'this' outside of a class.");
+
+           ResolveLocal(expr, expr.Keyword);
+        } 
         private void ResolveGroupingExpr(GroupingExpr expr) => Resolve(expr.Expression);
 
         private void ResolveLiteralExpr(LiteralExpr expr) { }
@@ -289,8 +361,12 @@ namespace Lox
             _scopes.Peek()[name.Lexeme] = true;
         }
 
-        private void ResolveFunction(FunctionStmt function)
+        private void ResolveFunction(FunctionStmt function, FunctionType type)
         {
+            var enclosingFunction = _currentFunction;
+
+            _currentFunction = type;
+
             BeginScope();
 
             foreach (var param in function.Params)
@@ -302,6 +378,8 @@ namespace Lox
             Resolve(function.Body.Statements);
             
             EndScope();
+
+            _currentFunction = enclosingFunction;
         }
 
         private void ResolveLocal(Expr expression, Token name)
