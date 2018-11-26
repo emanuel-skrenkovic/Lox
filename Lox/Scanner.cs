@@ -25,6 +25,7 @@ namespace Lox
             ["while"] = TokenType.WHILE,
             ["break"] = TokenType.BREAK,
             ["continue"] = TokenType.CONTINUE,
+            ["static"] = TokenType.STATIC,
         };
 
         private readonly IDictionary<char, Action> _scanActions;

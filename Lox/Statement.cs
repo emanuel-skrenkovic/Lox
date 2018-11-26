@@ -181,17 +181,22 @@ namespace Lox
 
         private readonly IList<FunctionStmt> _methods;
 
+        private readonly IList<FunctionStmt> _staticMethods;
+
         public Token Name { get => _name; }
         
         public VariableExpr Superclass { get => _superclass; }
 
         public IList<FunctionStmt> Methods { get => _methods; }
 
-        public ClassStmt(Token name, VariableExpr superclass, IList<FunctionStmt> methods)
+        public IList<FunctionStmt> StaticMethods { get => _staticMethods; }
+
+        public ClassStmt(Token name, VariableExpr superclass, IList<FunctionStmt> methods, IList<FunctionStmt> staticMethods)
         {
             _name = name;
             _superclass = superclass;
             _methods = methods;
+            _staticMethods = staticMethods;
         }
     }
 }

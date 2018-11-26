@@ -2,11 +2,13 @@ using System.Collections.Generic;
 
 namespace Lox
 {
-    public class Instance
+    public class Instance : IInstance
     {
         private readonly Class _class;
 
         private readonly IDictionary<string, object> _fields = new Dictionary<string, object>();
+
+        public IDictionary<string, object> Fields { get => _fields; }
 
         public Instance(Class klass)
         {

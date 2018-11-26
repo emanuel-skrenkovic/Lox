@@ -89,13 +89,19 @@ namespace Lox
             Consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
 
             var methods = new List<FunctionStmt>();
+            var staticMethods = new List<FunctionStmt>();
 
             while (!Check(TokenType.RIGHT_BRACE) && !IsAtEnd)
-                methods.Add((FunctionStmt)FunctionStmt("method"));
+            {
+                if (Match(TokenType.STATIC))
+                    staticMethods.Add((FunctionStmt)FunctionStmt("static method"));                    
+                else
+                    methods.Add((FunctionStmt)FunctionStmt("method"));
+            }
 
             Consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
 
-            return new ClassStmt(name, null, methods);
+            return new ClassStmt(name, null, methods, staticMethods);
         }
 
         private Stmt FunctionStmt(string kind)

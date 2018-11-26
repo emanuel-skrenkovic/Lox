@@ -157,7 +157,10 @@ namespace Lox
             foreach (var method in stmt.Methods)
                 methods[method.Name.Lexeme] = new Function(method, _env, method.Name.Lexeme == "init");
 
-            var klass = new Class(stmt.Name.Lexeme, methods);
+            IDictionary<string, Function> staticMethods = stmt.StaticMethods
+                .ToDictionary(m => m.Name.Lexeme, m => new Function(m, _env, false));
+
+            var klass = new Class(stmt.Name.Lexeme, methods, staticMethods);
 
             _env.Assign(stmt.Name, klass);
         }
@@ -312,7 +315,7 @@ namespace Lox
         {
             var obj = EvaluateExpr(expr.Object);
 
-            if (obj is Instance instance)
+            if (obj is IInstance instance)
                 return instance.Get(expr.Name);
 
             throw new RuntimeError(expr.Name, "Only instances have properties.");
@@ -322,7 +325,7 @@ namespace Lox
         {
             var obj= EvaluateExpr(expr.Object);
 
-            if (!(obj is Instance instance))
+            if (!(obj is IInstance instance))
                 throw new RuntimeError(expr.Name, "Only instances have fields.");
 
             var value = EvaluateExpr(expr.Value);
