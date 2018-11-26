@@ -209,6 +209,9 @@ namespace Lox
             {
                 var declaration = FunctionType.STATIC;
 
+                if (method.Name.Lexeme == "init")
+                    Lox.Error(method.Name, "Cannot declare init as static.");
+
                 ResolveFunction(method, declaration);
             }
 
