@@ -18,6 +18,7 @@ namespace Lox
             NONE,
             FUNCTION,
             METHOD,
+            STATIC,
             INITIALIZER,
         }
 
@@ -200,6 +201,13 @@ namespace Lox
 
                 if (method.Name.Lexeme == "init")
                     declaration = FunctionType.INITIALIZER;
+
+                ResolveFunction(method, declaration);
+            }
+
+            foreach (var method in stmt.StaticMethods)
+            {
+                var declaration = FunctionType.STATIC;
 
                 ResolveFunction(method, declaration);
             }
