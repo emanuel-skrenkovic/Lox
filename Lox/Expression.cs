@@ -232,4 +232,21 @@ namespace Lox
             _keyword = keyword;
         }
     }
+
+    public class SuperExpr : Expr
+    {
+        private readonly Token _keyword;
+
+        private readonly Token _method;
+
+        public Token Keyword { get => _keyword; }
+
+        public Token Method { get => _method; }
+
+        public SuperExpr(Token keyword, Token method)
+        {
+            _keyword = keyword;
+            _method = method;
+        }
+    }
 }

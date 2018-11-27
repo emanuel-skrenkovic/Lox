@@ -135,6 +135,9 @@ namespace Lox
                     case ThisExpr thisExpr:
                         return This(thisExpr);
 
+                    case SuperExpr superExpr:
+                        return Super(superExpr);
+
                     default:
                         return null;
                 }
@@ -150,7 +153,23 @@ namespace Lox
 
         private void ClassStmt(ClassStmt stmt)
         {
+            object superclass = null;
+
+            if (stmt.Superclass != null)
+            {
+                superclass = EvaluateExpr(stmt.Superclass);
+
+                if (!(superclass is Class))
+                    throw new RuntimeError(stmt.Superclass.Name, "Superclass must be a class.");
+            }
+
             _env.Define(stmt.Name.Lexeme, null);
+
+            if (stmt.Superclass != null)
+            {
+                _env = new Environment(_env);
+                _env.Define("super", superclass);
+            }
 
             var methods = new Dictionary<string, Function>();
 
@@ -160,7 +179,10 @@ namespace Lox
             IDictionary<string, Function> staticMethods = stmt.StaticMethods
                 .ToDictionary(m => m.Name.Lexeme, m => new Function(m, _env, false));
 
-            var klass = new Class(stmt.Name.Lexeme, methods, staticMethods);
+            var klass = new Class(stmt.Name.Lexeme, (Class)superclass, methods, staticMethods);
+
+            if (superclass != null)
+                _env = _env.Enclosing;
 
             _env.Assign(stmt.Name, klass);
         }
@@ -336,6 +358,20 @@ namespace Lox
         }
 
         private object This(ThisExpr expr) => LookUpVariable(expr.Keyword, expr);
+
+        private object Super(SuperExpr expr)
+        {
+            _locals.TryGetValue(expr, out var distance);
+
+            var superclass = (Class)_env.GetAt(distance, "super");
+            var obj = (Instance)_env.GetAt(distance - 1, "this");
+            var method = superclass.FindMethod(obj, expr.Method.Lexeme);
+
+            if (method == null)
+                throw new RuntimeError(expr.Method, $"Undefined property '{expr.Method.Lexeme}'.");
+
+            return method;
+        }
 
         private object Unary(UnaryExpr expr)
         {

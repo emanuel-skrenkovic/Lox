@@ -8,6 +8,8 @@ namespace Lox
 
         private readonly IDictionary<string, object> _values;
 
+        public Environment Enclosing { get => _enclosing; }
+
         public IDictionary<string, object> Values { get => _values; }
 
         public object this[Token key] { get => Get(key); }

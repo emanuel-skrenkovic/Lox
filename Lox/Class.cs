@@ -4,13 +4,16 @@ namespace Lox
 {
     public class Class : ICallable, IInstance
     {
-        private readonly Instance _instance;
-
         private readonly string _name;
 
         private readonly IDictionary<string, Function> _methods;
 
         private readonly IDictionary<string, Function> _staticMethods;
+
+        private readonly Instance _instance;
+
+        private readonly Class _superclass;
+
 
         public string Name { get => _name; }
 
@@ -18,11 +21,12 @@ namespace Lox
 
         public IDictionary<string, Function> StaticMethods { get => _staticMethods; }
 
-        public Class(string name, IDictionary<string, Function> methods, IDictionary<string, Function> staticMethods)
+        public Class(string name, Class superclass, IDictionary<string, Function> methods, IDictionary<string, Function> staticMethods)
         {
             _name = name;
             _methods = methods;
             _staticMethods = staticMethods;
+            _superclass = superclass;
             _instance = new Instance(this);
         }
 
@@ -51,6 +55,9 @@ namespace Lox
         {
             if (Methods.TryGetValue(name, out var method))
                 return method.Bind(instance);
+
+            if (_superclass != null)
+                return _superclass.FindMethod(instance, name);
 
             return null;
         }

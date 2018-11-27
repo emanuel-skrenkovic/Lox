@@ -26,6 +26,7 @@ namespace Lox
         {
             NONE,
             CLASS,
+            SUBCLASS,
         }
 
         public Resolver(Interpreter interpreter)
@@ -93,6 +94,10 @@ namespace Lox
 
                 case ThisExpr thisExpr:
                     ResolveThisExpr(thisExpr);
+                    break;
+
+                case SuperExpr superExpr:
+                    ResolveSuperExpr(superExpr);
                     break;
             }
         }
@@ -190,7 +195,20 @@ namespace Lox
             _currentClass = ClassType.CLASS;
 
             Declare(stmt.Name);
+
+            if (stmt.Superclass != null)
+            {
+                _currentClass = ClassType.SUBCLASS;
+                Resolve(stmt.Superclass);
+            }
+
             Define(stmt.Name);
+
+            if (stmt.Superclass != null)
+            {
+                BeginScope();
+                _scopes.Peek()["super"] = true;
+            }
 
             BeginScope();
             _scopes.Peek()["this"] = true;
@@ -214,6 +232,9 @@ namespace Lox
 
                 ResolveFunction(method, declaration);
             }
+
+            if (stmt.Superclass != null)
+                EndScope();
 
             EndScope();
 
@@ -338,6 +359,16 @@ namespace Lox
                 Lox.Error(expr.Keyword, "Cannot use 'this' outside of a class.");
 
            ResolveLocal(expr, expr.Keyword);
+        } 
+
+        private void ResolveSuperExpr(SuperExpr expr) 
+        {
+            if (_currentClass == ClassType.NONE)
+                Lox.Error(expr.Keyword, "Cannot use 'super' outside of a class.");
+            else if (_currentClass != ClassType.SUBCLASS)
+                Lox.Error(expr.Keyword, "Cannot use 'super' in a class with no supeclass.");
+
+            ResolveLocal(expr, expr.Keyword);
         } 
         private void ResolveGroupingExpr(GroupingExpr expr) => Resolve(expr.Expression);
 
