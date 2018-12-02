@@ -33,12 +33,9 @@ namespace Lox
             foreach (var call in paramArgPairs)
                 environment.Define(call.Parameter.Lexeme, call.Argument);
 
-            var shouldContinue = false;
-            var shouldBreak = false;
-
             try 
             {
-                interpreter.BlockStmt(_declaration.Body, environment, ref shouldBreak, ref shouldContinue);
+                interpreter.BlockStmt(_declaration.Body, environment);
             }
             catch (Return returnValue)
             {

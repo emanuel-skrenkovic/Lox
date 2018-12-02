@@ -29,10 +29,8 @@ namespace Lox
         {
             try 
             {
-                bool shouldBreak = false;
-                bool shouldContinue = false;
                 foreach (var s in stmts)
-                    Execute(s, ref shouldBreak, ref shouldContinue);
+                    Execute(s);
             }
             catch (RuntimeError err)
             {
@@ -40,7 +38,7 @@ namespace Lox
             }
         }
 
-        private void Execute(Stmt stmt, ref bool shouldBreak, ref bool shouldContinue)
+        private void Execute(Stmt stmt)
         {
             switch (stmt)
             {
@@ -49,7 +47,7 @@ namespace Lox
                     break;
 
                 case IfStmt ifStmt:
-                    IfStmt(ifStmt, ref shouldBreak, ref shouldContinue);
+                    IfStmt(ifStmt);
                     break;
 
                 case DeclarationStmt declarationStmt:
@@ -65,7 +63,7 @@ namespace Lox
                     break;
 
                 case BlockStmt blockStmt:
-                    BlockStmt(blockStmt, new Environment(_env), ref shouldBreak, ref shouldContinue);
+                    BlockStmt(blockStmt, new Environment(_env));
                     break;
 
                 case PrintStmt printStmt:
@@ -73,11 +71,11 @@ namespace Lox
                     break; 
                 
                 case WhileStmt whileStmt:
-                    WhileStmt(whileStmt, ref shouldBreak, ref shouldContinue);
+                    WhileStmt(whileStmt);
                     break;
 
                 case LoopControlStmt loopControlStmt:
-                    LoopControlStmt(loopControlStmt, ref shouldBreak, ref shouldContinue);
+                    LoopControlStmt(loopControlStmt);
                     break;
 
                 case FunctionStmt functionStmt:
@@ -187,12 +185,12 @@ namespace Lox
             _env.Assign(stmt.Name, klass);
         }
 
-        private void IfStmt(IfStmt stmt, ref bool shouldBreak, ref bool shouldContinue)
+        private void IfStmt(IfStmt stmt)
         {
             if (IsTruthy(EvaluateExpr(stmt.Condition)))
-                Execute(stmt.Then, ref shouldBreak, ref shouldContinue);
+                Execute(stmt.Then);
             else if (stmt.Else != null)
-                Execute(stmt.Else, ref shouldBreak, ref shouldContinue);
+                Execute(stmt.Else);
         }
 
         private void Declaration(DeclarationStmt stmt)
@@ -210,10 +208,10 @@ namespace Lox
 
         private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
-        internal void BlockStmt(BlockStmt stmt, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
-            => ExecuteBlock(stmt.Statements, environment, ref shouldBreak, ref shouldContinue);
+        internal void BlockStmt(BlockStmt stmt, Environment environment) 
+            => ExecuteBlock(stmt.Statements, environment);
 
-        private void ExecuteBlock(IList<Stmt> statements, Environment environment, ref bool shouldBreak, ref bool shouldContinue) 
+        private void ExecuteBlock(IList<Stmt> statements, Environment environment) 
         {
             var prevEnv = _env;
             try
@@ -221,12 +219,7 @@ namespace Lox
                 _env = environment;
 
                 foreach (var s in statements)
-                {
-                    Execute(s, ref shouldBreak, ref shouldContinue);
-
-                    if (shouldBreak || shouldContinue)
-                        break;
-                }
+                    Execute(s);
             }
             finally
             {
@@ -241,23 +234,29 @@ namespace Lox
             Console.WriteLine(Stringify(value));
         }
 
-        private void WhileStmt(WhileStmt stmt, ref bool shouldBreak, ref bool shouldContinue)
+        private void WhileStmt(WhileStmt stmt)
         {
-            while (IsTruthy(EvaluateExpr(stmt.Condition)) && !shouldBreak)
-                Execute(stmt.Body, ref shouldBreak, ref shouldContinue);
-
-            if (shouldBreak)
-                shouldBreak = false;
-
-            if (shouldContinue)
-                shouldContinue = false;        
+            while (IsTruthy(EvaluateExpr(stmt.Condition)))
+            {
+                try 
+                {
+                    Execute(stmt.Body);
+                }
+                catch (LoopControl lc)
+                {
+                    if (lc.Type == LoopControlType.BREAK)
+                        break;
+                    else if (lc.Type == LoopControlType.CONTINUE)
+                        continue;
+                }
+            }
         }
 
-        private void LoopControlStmt(LoopControlStmt stmt, ref bool shouldBreak, ref bool shouldContinue)
-        {
-            shouldBreak = stmt.Type.Type == TokenType.BREAK;
-            shouldContinue = !shouldBreak;
-        }
+        private void LoopControlStmt(LoopControlStmt stmt) 
+            => throw new LoopControl(stmt.Type.Type == TokenType.BREAK 
+                ? LoopControlType.BREAK 
+                : LoopControlType.CONTINUE);
+
 
         private void FunctionStmt(FunctionStmt stmt)
         {
