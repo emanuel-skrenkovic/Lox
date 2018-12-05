@@ -35,7 +35,7 @@ namespace Lox
 
             try 
             {
-                interpreter.BlockStmt(_declaration.Body, environment);
+                interpreter.ExecuteBlock(_declaration.Body.Statements, environment);
             }
             catch (Return returnValue)
             {

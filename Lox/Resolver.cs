@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Lox
 {
-    public class Resolver
+    public class Resolver : Matcher
     {
         private readonly Interpreter _interpreter; 
 
@@ -40,119 +40,11 @@ namespace Lox
                 Resolve(stmt);
         }
 
-        public void Resolve(Expr expression)
-        {
-            switch (expression)
-            {
-                case GetExpr getExpr:
-                    ResolveGetExpr(getExpr);
-                    break;
+        public object Resolve(Expr expression) => MatchExpression(expression);
 
-                case SetExpr setExpr:
-                    ResolveSetExpr(setExpr);
-                    break;
+        public void Resolve(Stmt statement) => MatchStatement(statement);
 
-                case VariableExpr variableExpr:
-                    ResolveVariableExpr(variableExpr);
-                    break;
-
-                case LogicalExpr logical:
-                    ResolveLogicalExpr(logical);
-                    break;
-
-                case AssignmentExpr assignment:
-                    ResolveAssignExpr(assignment);
-                    break;
-
-                case TernaryExpr ternary:
-                    ResolveTernaryExpr(ternary);
-                    break;
-
-                case BinaryExpr binary:
-                    ResolveBinaryExpr(binary);
-                    break;
-
-                case CallExpr call:
-                    ResolveCallExpr(call);
-                    break;
-
-                case UnaryExpr unary:
-                    ResolveUnaryExpr(unary);
-                    break;
-
-                case GroupingExpr grouping:
-                    ResolveGroupingExpr(grouping);
-                    break;
-
-                case LiteralExpr literal:
-                    ResolveLiteralExpr(literal);
-                    break;
-
-                case FunctionExpr function:
-                    ResolveFunctionExpr(function, FunctionType.FUNCTION);
-                    break;
-
-                case ThisExpr thisExpr:
-                    ResolveThisExpr(thisExpr);
-                    break;
-
-                case SuperExpr superExpr:
-                    ResolveSuperExpr(superExpr);
-                    break;
-            }
-        }
-
-        public void Resolve(Stmt statement)
-        {
-            switch (statement)
-            {
-                case ClassStmt classStmt:
-                    ResolveClassStmt(classStmt);
-                    break;
-
-                case IfStmt ifStmt:
-                    ResolveIfStmt(ifStmt);
-                    break;
-
-                case DeclarationStmt declarationStmt:
-                    ResolveDeclarationStmt(declarationStmt);
-                    break;
-
-                case VariableStmt variableStmt:
-                    ResolveVariableStmt(variableStmt);
-                    break;
-
-                case BlockStmt blockStmt:
-                    ResolveBlockStmt(blockStmt);
-                    break;
-
-                case ExpressionStmt exprStmt:
-                    ResolveExpressionStmt(exprStmt);
-                    break;
-
-                case PrintStmt printStmt:
-                    ResolvePrintStmt(printStmt);
-                    break; 
-                
-                case WhileStmt whileStmt:
-                    ResolveWhileStmt(whileStmt);
-                    break;
-
-                case LoopControlStmt loopControlStmt:
-                    ResolveLoopControlStmt(loopControlStmt);
-                    break;
-
-                case FunctionStmt functionStmt:
-                    ResolveFunctionStmt(functionStmt);
-                    break;
-
-                case ReturnStmt returnStmt:
-                    ResolveReturnStmt(returnStmt);
-                    break;
-            }
-        }
-
-        private void ResolveDeclarationStmt(DeclarationStmt stmt)
+        protected override void MatchDeclarationStmt(DeclarationStmt stmt)
         {
             Declare(stmt.Name);
 
@@ -162,7 +54,7 @@ namespace Lox
             Define(stmt.Name); 
         }
 
-        private void ResolveBlockStmt(BlockStmt stmt)
+        protected override void MatchBlockStmt(BlockStmt stmt)
         {
             BeginScope();
 
@@ -171,7 +63,7 @@ namespace Lox
             EndScope();
         }
 
-        private void ResolveVariableStmt(VariableStmt stmt)
+        protected override void MatchVariableStmt(VariableStmt stmt)
         {
             Declare(stmt.Name);
 
@@ -181,7 +73,7 @@ namespace Lox
             Define(stmt.Name);
         }
 
-        private void ResolveFunctionStmt(FunctionStmt stmt)
+        protected override void MatchFunctionStmt(FunctionStmt stmt)
         {
             Declare(stmt.Name);
             Define(stmt.Name);
@@ -189,7 +81,7 @@ namespace Lox
             ResolveFunction(stmt, FunctionType.FUNCTION);
         }
 
-        private void ResolveClassStmt(ClassStmt stmt)
+        protected override void MatchClassStmt(ClassStmt stmt)
         {
             var enclosingClass = _currentClass;
             _currentClass = ClassType.CLASS;
@@ -241,7 +133,7 @@ namespace Lox
             _currentClass = enclosingClass;
         }
 
-        private void ResolveIfStmt(IfStmt stmt)
+        protected override void MatchIfStmt(IfStmt stmt)
         {
             Resolve(stmt.Condition);
             Resolve(stmt.Then);
@@ -250,9 +142,9 @@ namespace Lox
                 Resolve(stmt.Else);
         }
 
-        private void ResolvePrintStmt(PrintStmt stmt) => Resolve(stmt.Expression);
+        protected override void MatchPrintStmt(PrintStmt stmt) => Resolve(stmt.Expression);
 
-        private void ResolveReturnStmt(ReturnStmt stmt)
+        protected override void MatchReturnStmt(ReturnStmt stmt)
         {
             if (_currentFunction == FunctionType.NONE)
                 Lox.Error(stmt.Keyword, "Cannot return from top-level code.");
@@ -266,25 +158,27 @@ namespace Lox
             }
         }
 
-        private void ResolveWhileStmt(WhileStmt stmt)
+        protected override void MatchWhileStmt(WhileStmt stmt)
         {
             Resolve(stmt.Condition);
             Resolve(stmt.Body);
         }
 
-        private void ResolveExpressionStmt(ExpressionStmt stmt) => Resolve(stmt.Expression);
+        protected override void MatchExpressionStmt(ExpressionStmt stmt) => Resolve(stmt.Expression);
 
-        private void ResolveLoopControlStmt(LoopControlStmt stmt) { }
+        protected override void MatchLoopControlStmt(LoopControlStmt stmt) { }
 
-        private void ResolveGetExpr(GetExpr expr) => Resolve(expr.Object);
+        protected override object MatchGetExpr(GetExpr expr) => Resolve(expr.Object);
 
-        private void ResolveSetExpr(SetExpr expr)
+        protected override object MatchSetExpr(SetExpr expr)
         {
             Resolve(expr.Value);
             Resolve(expr.Object);
+
+            return null;
         }
 
-        private void ResolveVariableExpr(VariableExpr expr)
+        protected override object MatchVariableExpr(VariableExpr expr)
         {
             if (_scopes.Count != 0)
             {
@@ -302,37 +196,54 @@ namespace Lox
             }
 
             ResolveLocal(expr, expr.Name);
+
+            return null;
         }
 
-        private void ResolveAssignExpr(AssignmentExpr expr)
+        protected override object MatchAssignExpr(AssignmentExpr expr)
         {
             Resolve(expr.Value);
 
             ResolveLocal(expr, expr.Name);
+
+            return null;
         }
 
-        private void ResolveTernaryExpr(TernaryExpr expr)
+        protected override object MatchTernaryExpr(TernaryExpr expr)
         {
             Resolve(expr.Cond);
             Resolve(expr.Left);
             Resolve(expr.Right);
+
+            return null;
         }
 
-        private void ResolveBinaryExpr(BinaryExpr expr)
+        protected override object MatchBinaryExpr(BinaryExpr expr)
         {
             Resolve(expr.Left);
             Resolve(expr.Right);
+
+            return null;
         }
 
-        private void ResolveCallExpr(CallExpr expr)
+        protected override object MatchCallExpr(CallExpr expr)
         {
             Resolve(expr.Callee);
 
             foreach (var arg in expr.Arguments)
                 Resolve(arg);
+
+            return null;
         }
 
-        private void ResolveFunctionExpr(FunctionExpr expr, FunctionType type)
+        protected override object MatchFunctionExpr(FunctionExpr expr)
+        {
+            FunctionExpr(expr, FunctionType.FUNCTION);
+
+            return null;
+        }
+
+        private void FunctionExpr(FunctionExpr expr, FunctionType type)
         {
             var enclosingFunction = _currentFunction;
 
@@ -351,17 +262,20 @@ namespace Lox
             EndScope();
 
             _currentFunction = enclosingFunction;
+
         }
 
-        private void ResolveThisExpr(ThisExpr expr)
+        protected override object MatchThisExpr(ThisExpr expr)
         {
             if (_currentClass == ClassType.NONE)
                 Lox.Error(expr.Keyword, "Cannot use 'this' outside of a class.");
 
            ResolveLocal(expr, expr.Keyword);
+
+           return null;
         } 
 
-        private void ResolveSuperExpr(SuperExpr expr) 
+        protected override object MatchSuperExpr(SuperExpr expr) 
         {
             if (_currentClass == ClassType.NONE)
                 Lox.Error(expr.Keyword, "Cannot use 'super' outside of a class.");
@@ -369,18 +283,22 @@ namespace Lox
                 Lox.Error(expr.Keyword, "Cannot use 'super' in a class with no supeclass.");
 
             ResolveLocal(expr, expr.Keyword);
+
+            return null;
         } 
-        private void ResolveGroupingExpr(GroupingExpr expr) => Resolve(expr.Expression);
+        protected override object MatchGroupingExpr(GroupingExpr expr) => Resolve(expr.Expression);
 
-        private void ResolveLiteralExpr(LiteralExpr expr) { }
+        protected override object MatchLiteralExpr(LiteralExpr expr) => null;
 
-        private void ResolveLogicalExpr(LogicalExpr expr)
+        protected override object MatchLogicalExpr(LogicalExpr expr)
         {
             Resolve(expr.Left);
             Resolve(expr.Right);
+
+            return null;
         }
 
-        private void ResolveUnaryExpr(UnaryExpr expr) => Resolve(expr.Right);
+        protected override object MatchUnaryExpr(UnaryExpr expr) => Resolve(expr.Right);
 
         private void Declare(Token name)
         {

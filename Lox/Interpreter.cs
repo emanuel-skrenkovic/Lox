@@ -4,8 +4,8 @@ using System.Linq;
 
 namespace Lox
 {
-    public class Interpreter
-    {
+    public class Interpreter : Matcher
+     {
         private readonly static Environment _globals = new Environment();
 
         private readonly IDictionary<Expr, int> _locals = new Dictionary<Expr, int>();
@@ -38,107 +38,13 @@ namespace Lox
             }
         }
 
-        private void Execute(Stmt stmt)
-        {
-            switch (stmt)
-            {
-                case ClassStmt classStmt:
-                    ClassStmt(classStmt);
-                    break;
-
-                case IfStmt ifStmt:
-                    IfStmt(ifStmt);
-                    break;
-
-                case DeclarationStmt declarationStmt:
-                    DeclarationStmt(declarationStmt);
-                    break;
-
-                case VariableStmt variableStmt:
-                    VariableStmt(variableStmt);
-                    break;
-
-                case ExpressionStmt exprStmt:
-                    ExpressionStmt(exprStmt);
-                    break;
-
-                case BlockStmt blockStmt:
-                    BlockStmt(blockStmt, new Environment(_env));
-                    break;
-
-                case PrintStmt printStmt:
-                    PrintStmt(printStmt);
-                    break; 
-                
-                case WhileStmt whileStmt:
-                    WhileStmt(whileStmt);
-                    break;
-
-                case LoopControlStmt loopControlStmt:
-                    LoopControlStmt(loopControlStmt);
-                    break;
-
-                case FunctionStmt functionStmt:
-                    FunctionStmt(functionStmt);
-                    break;
-
-                case ReturnStmt returnStmt:
-                    ReturnStmt(returnStmt);
-                    break;
-            }
-        }
+        private void Execute(Stmt stmt) => MatchStatement(stmt);
 
         private object EvaluateExpr(Expr expr)
         {
             try 
             {
-                switch (expr)
-                {
-                    case LogicalExpr logical:
-                        return Logical(logical);
-
-                    case AssignmentExpr assignment:
-                        return Assignment(assignment);
-
-                    case TernaryExpr ternary:
-                        return Ternary(ternary);
-
-                    case BinaryExpr binary:
-                        return Binary(binary);
-
-                    case CallExpr call:
-                        return Call(call);
-
-                    case UnaryExpr unary:
-                        return Unary(unary);
-
-                    case GroupingExpr grouping:
-                        return Grouping(grouping);
-
-                    case VariableExpr variable:
-                        return Variable(variable);
-
-                    case LiteralExpr literal:
-                        return Literal(literal);
-
-                    case FunctionExpr function:
-                        return Function(function);
-
-                    case GetExpr get:
-                        return Get(get);
-
-                    case SetExpr set:
-                        return Set(set);
-
-                    case ThisExpr thisExpr:
-                        return This(thisExpr);
-
-                    case SuperExpr superExpr:
-                        return Super(superExpr);
-
-                    default:
-                        return null;
-                }
+                return MatchExpression(expr);
             }
             catch (RuntimeError err)
             {
@@ -149,7 +55,7 @@ namespace Lox
 
         internal void Resolve(Expr expr, int depth) => _locals.Add(expr, depth);
 
-        private void ClassStmt(ClassStmt stmt)
+        protected override void MatchClassStmt(ClassStmt stmt)
         {
             object superclass = null;
 
@@ -185,7 +91,7 @@ namespace Lox
             _env.Assign(stmt.Name, klass);
         }
 
-        private void IfStmt(IfStmt stmt)
+        protected override void MatchIfStmt(IfStmt stmt)
         {
             if (IsTruthy(EvaluateExpr(stmt.Condition)))
                 Execute(stmt.Then);
@@ -202,16 +108,16 @@ namespace Lox
             _env.Define(stmt.Name.Lexeme, value);
         }
 
-        private void DeclarationStmt(DeclarationStmt stmt) => Declaration(stmt);
+        protected override void MatchDeclarationStmt(DeclarationStmt stmt) => Declaration(stmt);
 
-        private void VariableStmt(VariableStmt stmt) => Declaration(stmt.Declaration);
+        protected override void MatchVariableStmt(VariableStmt stmt) => Declaration(stmt.Declaration);
 
-        private void ExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
+        protected override void MatchExpressionStmt(ExpressionStmt stmt) => EvaluateExpr(stmt.Expression);
 
-        internal void BlockStmt(BlockStmt stmt, Environment environment) 
-            => ExecuteBlock(stmt.Statements, environment);
+        protected override void MatchBlockStmt(BlockStmt stmt) 
+            => ExecuteBlock(stmt.Statements, new Environment(_env));
 
-        private void ExecuteBlock(IList<Stmt> statements, Environment environment) 
+        internal void ExecuteBlock(IList<Stmt> statements, Environment environment) 
         {
             var prevEnv = _env;
             try
@@ -227,14 +133,14 @@ namespace Lox
             }
         }
 
-        private void PrintStmt(PrintStmt stmt)
+        protected override void MatchPrintStmt(PrintStmt stmt)
         {
             var value = EvaluateExpr(stmt.Expression);
 
             Console.WriteLine(Stringify(value));
         }
 
-        private void WhileStmt(WhileStmt stmt)
+        protected override void MatchWhileStmt(WhileStmt stmt)
         {
             while (IsTruthy(EvaluateExpr(stmt.Condition)))
             {
@@ -252,27 +158,27 @@ namespace Lox
             }
         }
 
-        private void LoopControlStmt(LoopControlStmt stmt) 
+        protected override void MatchLoopControlStmt(LoopControlStmt stmt) 
             => throw new LoopControl(stmt.Type.Type == TokenType.BREAK 
                 ? LoopControlType.BREAK 
                 : LoopControlType.CONTINUE);
 
 
-        private void FunctionStmt(FunctionStmt stmt)
+        protected override void MatchFunctionStmt(FunctionStmt stmt)
         {
             var function = new Function(stmt, _env);
 
             _env.Define(stmt.Name.Lexeme, function);
         }
 
-        private void ReturnStmt(ReturnStmt stmt)
+        protected override void MatchReturnStmt(ReturnStmt stmt)
         {
             var value = EvaluateExpr(stmt.Value) ?? null;
 
             throw new Return(value);
         }
 
-        private object Logical(LogicalExpr expr)
+        protected override object MatchLogicalExpr(LogicalExpr expr)
         {
             var left = EvaluateExpr(expr.Left);
 
@@ -290,7 +196,7 @@ namespace Lox
             return EvaluateExpr(expr.Right);
         }
 
-        private object Assignment(AssignmentExpr expr)
+        protected override object MatchAssignExpr(AssignmentExpr expr)
         {
             var value = EvaluateExpr(expr.Value);
 
@@ -302,13 +208,13 @@ namespace Lox
             return value;
         }
 
-        private object Literal(LiteralExpr expr) => expr.Value;
+        protected override object MatchLiteralExpr(LiteralExpr expr) => expr.Value;
 
-        private object Grouping(GroupingExpr expr) => EvaluateExpr(expr.Expression);
+        protected override object MatchGroupingExpr(GroupingExpr expr) => EvaluateExpr(expr.Expression);
 
-        private object Variable(VariableExpr expr) => LookUpVariable(expr.Name, expr);
+        protected override object MatchVariableExpr(VariableExpr expr) => LookUpVariable(expr.Name, expr);
 
-        private object Call(CallExpr expr)
+        protected override object MatchCallExpr(CallExpr expr)
         {
             var callee = EvaluateExpr(expr.Callee);
 
@@ -325,14 +231,14 @@ namespace Lox
             return function.Call(this, arguments);
         }
 
-        private object Function(FunctionExpr expr)
+        protected override object MatchFunctionExpr(FunctionExpr expr)
         {
             var stmt = new FunctionStmt(null, expr.Params, expr.Body);
 
             return new Function(stmt, _env); 
         }
 
-        private object Get(GetExpr expr)
+        protected override object MatchGetExpr(GetExpr expr)
         {
             var obj = EvaluateExpr(expr.Object);
 
@@ -342,7 +248,7 @@ namespace Lox
             throw new RuntimeError(expr.Name, "Only instances have properties.");
         }
 
-        private object Set(SetExpr expr)
+        protected override object MatchSetExpr(SetExpr expr)
         {
             var obj= EvaluateExpr(expr.Object);
 
@@ -356,9 +262,9 @@ namespace Lox
             return value;
         }
 
-        private object This(ThisExpr expr) => LookUpVariable(expr.Keyword, expr);
+        protected override object MatchThisExpr(ThisExpr expr) => LookUpVariable(expr.Keyword, expr);
 
-        private object Super(SuperExpr expr)
+        protected override object MatchSuperExpr(SuperExpr expr)
         {
             _locals.TryGetValue(expr, out var distance);
 
@@ -372,7 +278,7 @@ namespace Lox
             return method;
         }
 
-        private object Unary(UnaryExpr expr)
+        protected override object MatchUnaryExpr(UnaryExpr expr)
         {
             var right = EvaluateExpr(expr.Right);
 
@@ -389,7 +295,7 @@ namespace Lox
             return null;
         }
 
-        private object Binary(BinaryExpr expr)
+        protected override object MatchBinaryExpr(BinaryExpr expr)
         {
             var left = EvaluateExpr(expr.Left);
             var right = EvaluateExpr(expr.Right);
@@ -447,7 +353,7 @@ namespace Lox
             }
         }
         
-        private object Ternary(TernaryExpr expr)
+        protected override object MatchTernaryExpr(TernaryExpr expr)
         {
             var cond = EvaluateExpr(expr.Cond);
 
@@ -516,5 +422,5 @@ namespace Lox
 
             return obj.ToString();
         }
-    }
+   }
 }
