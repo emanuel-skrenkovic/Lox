@@ -220,15 +220,15 @@ namespace Lox
 
             var arguments = expr.Arguments.Select(EvaluateExpr).ToList();
 
-            if (!(callee is ICallable))
-                throw new RuntimeError(expr.Paren, "Can only call functions and classes.");
+            if (callee is ICallable function)
+            {
+                if (arguments.Count != function.Arity)
+                    throw new RuntimeError(expr.Paren, $"Expected {function.Arity} arguments but got {arguments.Count}.");
 
-            var function = (ICallable)callee;
+                return function.Call(this, arguments);
+            }
 
-            if (arguments.Count != function.Arity)
-                throw new RuntimeError(expr.Paren, $"Expected {function.Arity} arguments but got {arguments.Count}.");
-
-            return function.Call(this, arguments);
+            throw new RuntimeError(expr.Paren, "Can only call functions and classes");
         }
 
         protected override object MatchFunctionExpr(FunctionExpr expr)
